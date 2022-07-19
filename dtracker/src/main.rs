@@ -6,8 +6,8 @@ use std::{
 
 use dtracker::thread_pool::ThreadPool;
 
-fn main() {
-    let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
+fn main() -> std::io::Result<()> {
+    let listener = TcpListener::bind("127.0.0.1:8080")?;
     let pool = ThreadPool::new(4);
 
     println!("Serving on http://127.0.0.1:8080"); // Use logger
@@ -18,16 +18,17 @@ fn main() {
             handle_connection(stream);
         });
     }
+    Ok(())
 }
 
-fn create_response(buffer: &[u8]) -> String {
+fn create_response(buffer: &[u8]) -> std::io::Result<String> {
     let (status_line, filename) = if buffer.starts_with(b"GET") {
         ("HTTP/1.1 200 OK", "/dtracker/templates/get.html")
     } else {
         ("HTTP/1.1 404 NOT FOUND", "/dtracker/templates/404.html")
     };
 
-    let contents = fs::read_to_string(filename).unwrap();
+    let contents = fs::read_to_string(filename)?;
 
     let response = format!(
         "{}\r\nContent-Length: {}\r\n\r\n{}",
@@ -36,21 +37,31 @@ fn create_response(buffer: &[u8]) -> String {
         contents
     );
 
-    response
+    Ok(response)
 }
 
-fn handle_read(stream: &mut TcpStream, buffer: &mut [u8]) {
-    stream.read(buffer).unwrap();
-    println!("Request: {}", String::from_utf8_lossy(&buffer[..])); // Use logger
+fn handle_read(stream: &mut TcpStream, buffer: &mut [u8]) -> std::io::Result<()> {
+    match stream.read(buffer) {
+        Ok(_) => {
+            println!("Request: {}", String::from_utf8_lossy(buffer));
+            Ok(())
+        } // Use logger
+        Err(e) => Err(e),
+    }
 }
 
-fn handle_write(mut stream: TcpStream, buffer: &[u8]) {
-    stream.write_all(create_response(buffer).as_bytes()).unwrap();
+fn handle_write(mut stream: TcpStream, buffer: &[u8]) -> std::io::Result<()> {
+    stream
+        .write_all(create_response(buffer)?.as_bytes())
+        .unwrap();
     stream.flush().unwrap();
+
+    Ok(())
 }
 
 fn handle_connection(mut stream: TcpStream) {
     let mut buffer = [0; 1024];
-    handle_read(&mut stream, &mut buffer);
-    handle_write(stream, &buffer);
+    if handle_read(&mut stream, &mut buffer).is_ok() {
+        _ = handle_write(stream, &buffer);
+    }
 }

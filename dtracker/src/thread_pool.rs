@@ -1,6 +1,9 @@
-use std::sync::{mpsc::{Sender, channel}, Arc, Mutex};
+use std::sync::{
+    mpsc::{channel, Sender},
+    Arc, Mutex,
+};
 
-use crate::worker::{Worker, Message};
+use crate::worker::{Message, Worker};
 
 pub struct ThreadPool {
     workers: Vec<Worker>,
