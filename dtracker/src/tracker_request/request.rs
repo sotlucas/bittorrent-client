@@ -1,6 +1,10 @@
-use std::{net::TcpStream, io::Read};
+use std::{
+    fs,
+    io::{Read, Write},
+    net::TcpStream,
+};
 
-use crate::http::http_parser::{Http, HttpError};
+use crate::{announce::announce_response::AnnounceResponse, http::{http_parser::Http, http_status::HttpStatus, http_method::HttpMethod}};
 
 pub struct Request {
     pub stream: TcpStream,
@@ -8,7 +12,7 @@ pub struct Request {
 
 pub enum RequestError {
     InvalidEndpointError,
-    ParseHttpError   
+    ParseHttpError,
 }
 
 impl Request {
@@ -16,37 +20,55 @@ impl Request {
         Request { stream }
     }
 
-    pub fn handle(&self) -> Result<(), RequestError> {
+    pub fn handle(&mut self) -> Result<(), RequestError> {
         let mut buf = vec![];
         let body = self.stream.read_to_end(&mut buf).unwrap();
 
         let http_request = Http::parse(&buf).map_err(|_| RequestError::ParseHttpError)?;
-        // TODO: Validate method in request
-        match http_request.endpoint.as_str() {
-            "/announce" => {
-                self.handle_announce(http_request);
-            }
-            "/stats" => {
-                self.handle_stats(http_request);
-            }
-            _ => return Err(RequestError::InvalidEndpointError),
+
+        let (status_line, response) = if http_request.method.eq(&HttpMethod::Get) {
+            let response = match http_request.endpoint.as_str() {
+                "/announce" => self.handle_announce(http_request),
+                "/stats" => self.handle_stats(http_request),
+                _ => return Err(RequestError::InvalidEndpointError),
+            };
+            (HttpStatus::Ok, response)
+        } else {
+            (HttpStatus::NotFound, "".to_string())
         };
+
+        self.send_response(response.as_str(), status_line).unwrap();
+
         Ok(())
     }
 
-    fn handle_announce(&self, http_request: Http) {
+    fn handle_announce(&self, http_request: Http) -> String {
         let announce_response = AnnounceResponse::from(http_request.params);
+        String::from("")
     }
 
-    fn handle_stats(&self, http_request: Http) {
-        let stats_response = Stats::from(http_request.params);
-        self.send_response(response);
+    fn handle_stats(&self, http_request: Http) -> String {
+        // let stats_response = Stats::from(http_request.params);
+        String::from("")
     }
 
-    fn send_response(&self, response: String) {
-        stream
-            .write_all(create_response(buffer)?.as_bytes())
+    fn create_response(contents: &str, status_line: HttpStatus) -> std::io::Result<String> {
+        let response = format!(
+            "HTTP/1.1 {}\r\nContent-Length: {}\r\n\r\n{}",
+            status_line.to_string(),
+            contents.len(),
+            contents
+        );
+
+        Ok(response)
+    }
+
+    fn send_response(&mut self, contents: &str, status_line: HttpStatus) -> std::io::Result<()> {
+        self.stream
+            .write_all(Self::create_response(contents, status_line)?.as_bytes())
             .unwrap();
-        stream.flush().unwrap();
+        self.stream.flush().unwrap();
+
+        Ok(())
     }
 }
