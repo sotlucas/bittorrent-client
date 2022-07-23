@@ -27,7 +27,10 @@ impl Http {
         let line = lines.next().ok_or(HttpError::ParseError)?;
 
         let mut line_split = line.split(|&b| b == b' ');
-        let method = HttpMethod::from_str(&String::from_utf8_lossy(line_split.next().ok_or(HttpError::ParseError)?).to_string()).map_err(|_| HttpError::HttpMethodNotSupported)?;
+        let method = HttpMethod::from_str(
+            &String::from_utf8_lossy(line_split.next().ok_or(HttpError::ParseError)?).to_string(),
+        )
+        .map_err(|_| HttpError::HttpMethodNotSupported)?;
 
         let mut endpoint_split = line_split
             .next()

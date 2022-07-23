@@ -1,10 +1,12 @@
 use std::{
-    fs,
     io::{Read, Write},
     net::TcpStream,
 };
 
-use crate::{announce::announce_response::AnnounceResponse, http::{http_parser::Http, http_status::HttpStatus, http_method::HttpMethod}};
+use crate::{
+    announce::announce_response::AnnounceResponse,
+    http::{http_method::HttpMethod, http_parser::Http, http_status::HttpStatus},
+};
 
 pub struct Request {
     pub stream: TcpStream,
@@ -22,8 +24,9 @@ impl Request {
 
     pub fn handle(&mut self) -> Result<(), RequestError> {
         let mut buf = vec![];
-        let body = self.stream.read_to_end(&mut buf).unwrap();
+        self.stream.read_to_end(&mut buf).unwrap();
 
+        // TODO: should match and send error (400 BAD REQUEST) through stream before returning error
         let http_request = Http::parse(&buf).map_err(|_| RequestError::ParseHttpError)?;
 
         let (status_line, response) = if http_request.method.eq(&HttpMethod::Get) {
