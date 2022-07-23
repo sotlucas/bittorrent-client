@@ -3,7 +3,7 @@ use std::sync::{
     Arc, Mutex,
 };
 
-use crate::worker::{Message, Worker};
+use super::worker::{Message, Worker};
 
 pub struct ThreadPool {
     workers: Vec<Worker>,
