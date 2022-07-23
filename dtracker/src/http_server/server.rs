@@ -6,7 +6,7 @@ use std::{
 
 use crate::http_server::thread_pool::ThreadPool;
 
-fn serve() -> std::io::Result<()> {
+pub fn serve() -> std::io::Result<()> {
     let listener = TcpListener::bind("127.0.0.1:8080")?;
     let pool = ThreadPool::new(4);
 
