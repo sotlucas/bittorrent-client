@@ -9,7 +9,7 @@ pub enum Message {
     NewJob(Job),
     Terminate,
 }
-
+/// Struct responsible for sending code from the ThreadPool to a Thread.
 pub struct Worker {
     // TODO: solve public attributes
     pub id: usize,
@@ -17,6 +17,7 @@ pub struct Worker {
 }
 
 impl Worker {
+    /// Returns a new Worker instance that holds the `id` and a thread spawned with an empty closure.
     pub fn new(id: usize, receiver: Arc<Mutex<Receiver<Message>>>) -> Worker {
         let thread = thread::spawn(move || loop {
             let message = receiver.lock().unwrap().recv().unwrap();
