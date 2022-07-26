@@ -42,7 +42,7 @@ impl Server {
 
         for stream in self.listener.incoming() {
             let stream = stream.unwrap();
-            let mut request = Request::new(stream);
+            let mut request = Request::new(stream, self.status.clone());
             let logger = self.logger_sender.clone();
             self.pool.execute(move || {
                 if request.handle().is_err() {

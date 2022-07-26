@@ -1,15 +1,19 @@
 use std::{
     io::{Read, Write},
     net::TcpStream,
+    sync::Arc,
 };
 
 use crate::{
+    tracker_status::atomic_tracker_status::AtomicTrackerStatus,
+    tracker_peer::peer::Peer,
     announce::announce_response::AnnounceResponse,
     http::{http_method::HttpMethod, http_parser::Http, http_status::HttpStatus},
 };
 
 pub struct Request {
     pub stream: TcpStream,
+    status: Arc<AtomicTrackerStatus>
 }
 
 #[derive(Debug)]
@@ -19,8 +23,10 @@ pub enum RequestError {
 }
 
 impl Request {
-    pub fn new(stream: TcpStream) -> Request {
-        Request { stream }
+    pub fn new(stream: TcpStream, 
+        status: Arc<AtomicTrackerStatus>
+    ) -> Request {
+        Request { stream, status }
     }
 
     pub fn handle(&mut self) -> Result<(), RequestError> {
@@ -54,13 +60,21 @@ impl Request {
     /// Receives a `since` param that represents the period for statistics in hours. 
     fn handle_stats(&self, http_request: Http) -> String {
         let since = http_request.params.get("since").unwrap();
+        let since_hours = chrono::Duration::hours(since.parse::<i64>().unwrap());
+        let timestamp_limit = chrono::Local::now() - since_hours;
 
         // Obtener cantidades de peers conectados, seeders, leechers y torrents
+        let torrents = self.status.get_torrents();
+        let peers: Vec<Peer> = torrents.values().map(|peer_status| peer_status.peers.clone()).collect();
+
+        
+        let pepe: Vec<Peer> = peers.iter().filter(|peer| std::cmp::Ordering::is_lt(timestamp_limit.cmp(&peer.status.last_seen))).collect();
 
         // Distribuir en "buckets" de a minutos / horas 
 
         // Armar string JSON
         String::from("stats")
+
     }
 
     fn create_response(contents: &str, status_line: HttpStatus) -> std::io::Result<String> {
