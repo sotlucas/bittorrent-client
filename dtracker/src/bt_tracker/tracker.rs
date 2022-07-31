@@ -57,7 +57,7 @@ impl BtTracker {
     ) -> Arc<StatsUpdater> {
         let stats_updater = Arc::new(StatsUpdater::new(
             tracker_status,
-            Duration::minutes(STATS_UPDATER_MINUTES_TIMEOUT),
+            Duration::milliseconds(100),
             logger_sender,
         ));
         let updater = stats_updater.clone();

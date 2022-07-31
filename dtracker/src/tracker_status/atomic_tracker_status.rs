@@ -47,7 +47,7 @@ impl AtomicTrackerStatus {
         let mut swarms = self.lock_swarms();
         let torrent_swarm = swarms
             .entry(info_hash)
-            .or_insert_with(|| Swarm::new(Duration::hours(PEER_HOURS_TIMEOUT)));
+            .or_insert_with(|| Swarm::new(Duration::seconds(60)));
 
         torrent_swarm.announce(peer);
 

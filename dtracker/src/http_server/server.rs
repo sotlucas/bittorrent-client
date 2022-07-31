@@ -34,7 +34,7 @@ impl Server {
         let listener = TcpListener::bind("127.0.0.1:8080")?;
         Ok(Server {
             listener,
-            pool: ThreadPool::new(4, logger_sender.clone()),
+            pool: ThreadPool::new(10000, logger_sender.clone()),
             status,
             logger_sender,
             stats_updater,

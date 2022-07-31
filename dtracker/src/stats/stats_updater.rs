@@ -71,8 +71,8 @@ impl StatsUpdater {
     /// * `Vec<CurrentTrackerStats>`: The history of the stats. The total number of torrents, seeders and leechers at a given time.
     pub fn get_history(&self, since: chrono::Duration) -> Vec<CurrentTrackerStats> {
         let stats_history = self.lock_stats_history();
-        let since_secs = since.num_seconds();
-        let timeout_secs = self.duration.num_seconds();
+        let since_secs = since.num_milliseconds();
+        let timeout_secs = self.duration.num_milliseconds();
 
         let number_of_histories_wanted = since_secs / timeout_secs;
 
