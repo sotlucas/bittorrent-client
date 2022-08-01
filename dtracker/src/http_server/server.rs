@@ -9,7 +9,7 @@ use crate::{
     tracker_status::atomic_tracker_status::AtomicTrackerStatus,
 };
 
-/// Struct that represents the current status of the tracker.
+/// Struct that represents the HTTP Server that will listen to connections to the Tracker.
 ///
 /// ## Fields
 /// * `listener`: The TCP server binded to the socket, responsible of listening for connections.
@@ -22,6 +22,7 @@ pub struct Server {
     status: Arc<AtomicTrackerStatus>,
     stats_updater: Arc<StatsUpdater>,
     logger_sender: LoggerSender,
+    port: u16,
 }
 
 impl Server {
@@ -30,20 +31,24 @@ impl Server {
         status: Arc<AtomicTrackerStatus>,
         stats_updater: Arc<StatsUpdater>,
         logger_sender: LoggerSender,
+        port: u16,
     ) -> std::io::Result<Server> {
-        let listener = TcpListener::bind("127.0.0.1:8080")?;
+        let listener = TcpListener::bind(format!("0.0.0.0:{}", port))?;
         Ok(Server {
             listener,
-            pool: ThreadPool::new(10000, logger_sender.clone()),
+            pool: ThreadPool::new(1000, logger_sender.clone()),
             status,
             logger_sender,
             stats_updater,
+            port,
         })
     }
 
     /// Handles new connections to the server
     pub fn serve(&self) -> std::io::Result<()> {
-        self.logger_sender.info("Serving on http://127.0.0.1:8080");
+        let started_msg = format!("Serving on http://0.0.0.0:{}", self.port);
+        self.logger_sender.info(&started_msg);
+        println!("{}", started_msg);
 
         for stream in self.listener.incoming() {
             let stream = stream?;
@@ -51,7 +56,7 @@ impl Server {
             let logger = self.logger_sender.clone();
             let status_clone = self.status.clone();
             let stats_updater = self.stats_updater.clone();
-            self.pool.execute(move || {
+            let _ = self.pool.execute(move || {
                 if let Err(error) = request_handler.handle(status_clone, stats_updater) {
                     logger.error(&format!(
                         "An error occurred while attempting to handle a request: {:?}",
